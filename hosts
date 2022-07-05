@@ -1,0 +1,8 @@
+[APP]
+APP-GW ansible_ssh_host=192.168.1.1
+APP-VM01 ansible_ssh_host=192.168.1.101
+APP-VM02 ansible_ssh_host=192.168.1.102
+
+[all:vars]
+ansible_ssh_user = root
+ansible_ssh_pass = toor

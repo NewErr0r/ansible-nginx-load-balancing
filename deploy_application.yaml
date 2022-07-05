@@ -1,0 +1,74 @@
+---
+- name: Deploy Applycation
+  hosts: APP
+  gather_facts: no
+  become: true
+
+  tasks: 
+    - name: Install web server by NGINX
+      yum: 
+        name: nginx
+        state: latest
+
+    - name: Started and Enabled NGINX
+      service:
+        name: nginx
+        enabled: true
+        state: started
+
+    - name: Permit trafic http on Firewalld
+      firewalld:
+        service: http
+        permanent: yes
+        state: enabled 
+      notify: Restart Firewalld
+
+- name: Deploy Content
+  hosts: APP-VM01 APP-VM02
+  become: true
+
+  vars: 
+    dest_folder_html: /usr/share/nginx/html/index.html
+
+  tasks: 
+    - name: Deploy index.html file
+      template:
+        src: template/index.html.j2
+        dest: "{{ dest_folder_html }}" 
+      notify: Restart NGINX
+     
+- name: Deploy load bancing on Web Server
+  hosts: APP-GW
+  become: true
+  
+  vars:
+    dest_folder_nginx: /etc/nginx/nginx.conf
+    address_for_proxy_VM01: "192.168.1.101"
+    address_for_proxy_VM02: "192.168.1.102"
+
+  tasks: 
+    - name: Set httpd_can_network_connect flag on and keep persistent across reboots
+      seboolean:
+        name: httpd_can_network_connect
+        state: yes
+        persistent: yes
+
+    - name: Deploy nginx.conf file
+      template:
+        src: template/nginx.conf.j2
+        dest: "{{  dest_folder_nginx }}"
+      notify: Restart NGINX
+
+
+  handlers:
+    - name: Restart Firewalld
+      service:
+        name: firewalld
+        state: restarted
+
+    - name: Restart NGINX
+      service: 
+        name: nginx
+        state: restarted
+
+         
